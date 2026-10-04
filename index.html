@@ -1,0 +1,1336 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full bg-slate-50">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CampusMate - IPK Calculator & Tugas Tracker</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857',
+              800: '#065f46',
+              900: '#064e3b',
+            },
+            tealbrand: {
+              50: '#f0fdfa',
+              100: '#ccfbf1',
+              500: '#14b8a6',
+              600: '#0d9488',
+              700: '#0f766e',
+              800: '#115e59',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom scrollbar & smooth transitions */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    .tab-active { border-bottom: 3px solid #0d9488; color: #0d9488; font-weight: 600; }
+    .fade-in { animation: fadeIn 0.25s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body class="h-full flex flex-col font-sans text-slate-800 antialiased selection:bg-tealbrand-100 selection:text-tealbrand-800">
+
+  <!-- Header / Navbar -->
+  <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        
+        <!-- Brand Title -->
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-tealbrand-600 to-emerald-500 flex items-center justify-center text-white font-bold text-xl shadow-md shadow-tealbrand-500/20">
+            🎓
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <h1 class="text-xl font-bold tracking-tight text-slate-900">CampusMate</h1>
+              <span class="px-2 py-0.5 text-xs font-semibold bg-tealbrand-50 text-tealbrand-700 border border-tealbrand-200 rounded-full">v1.0 Challenge Edition</span>
+            </div>
+            <p class="text-xs text-slate-500 hidden sm:block">Asisten IPK, Target Akademik & Tugas Kuliah Mahasiswa</p>
+          </div>
+        </div>
+
+        <!-- Quick Summary Stats Bar -->
+        <div class="flex items-center space-x-4">
+          <div class="hidden md:flex items-center space-x-6 text-sm bg-slate-50 px-4 py-2 rounded-xl border border-slate-200">
+            <div class="text-center">
+              <span class="text-xs text-slate-500 block">IPK Akumulatif</span>
+              <span id="quick-ipk" class="font-bold text-tealbrand-700 text-base">0.00</span>
+            </div>
+            <div class="h-6 w-px bg-slate-200"></div>
+            <div class="text-center">
+              <span class="text-xs text-slate-500 block">Total SKS</span>
+              <span id="quick-sks" class="font-bold text-slate-700 text-base">0 SKS</span>
+            </div>
+            <div class="h-6 w-px bg-slate-200"></div>
+            <div class="text-center">
+              <span class="text-xs text-slate-500 block">Tugas Belum Selesai</span>
+              <span id="quick-tasks" class="font-bold text-amber-600 text-base">0</span>
+            </div>
+          </div>
+
+          <button onclick="loadSampleData()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-lg font-medium border border-slate-200 transition flex items-center space-x-1" title="Muat data contoh untuk pengujian">
+            <span>✨</span>
+            <span class="hidden sm:inline">Isi Data Demo</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="bg-white border-t border-slate-100 px-4 sm:px-6 lg:px-8">
+      <nav class="max-w-7xl mx-auto flex space-x-8 overflow-x-auto no-scrollbar" aria-label="Tabs">
+        <button onclick="switchTab('ipk-tab')" id="tab-ipk-tab" class="tab-btn tab-active py-3 px-1 text-sm font-medium whitespace-nowrap flex items-center space-x-2">
+          <span>📊</span>
+          <span>Kalkulator IPK / IPS</span>
+        </button>
+        <button onclick="switchTab('tugas-tab')" id="tab-tugas-tab" class="tab-btn text-slate-500 hover:text-slate-700 py-3 px-1 text-sm font-medium whitespace-nowrap flex items-center space-x-2">
+          <span>📝</span>
+          <span>Tracker Tugas & Deadline</span>
+          <span id="badge-pending-count" class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-amber-100 text-amber-800 hidden">0</span>
+        </button>
+        <button onclick="switchTab('target-tab')" id="tab-target-tab" class="tab-btn text-slate-500 hover:text-slate-700 py-3 px-1 text-sm font-medium whitespace-nowrap flex items-center space-x-2">
+          <span>🎯</span>
+          <span>Simulasi Target IPK</span>
+        </button>
+        <button onclick="switchTab('submission-tab')" id="tab-submission-tab" class="tab-btn text-slate-500 hover:text-slate-700 py-3 px-1 text-sm font-medium whitespace-nowrap flex items-center space-x-2">
+          <span>🚀</span>
+          <span>Bantuan Formulir Challenge</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+
+    <!-- ========================================================================= -->
+    <!-- TAB 1: IPK / IPS CALCULATOR -->
+    <!-- ========================================================================= -->
+    <section id="ipk-tab" class="tab-content fade-in space-y-6">
+      
+      <!-- Top Overview Dashboard -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <!-- Card 1: IPK Main Badge -->
+        <div class="bg-gradient-to-br from-tealbrand-700 to-tealbrand-900 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden flex flex-col justify-between">
+          <div class="absolute -right-4 -bottom-4 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+          <div>
+            <span class="text-xs font-semibold tracking-wider uppercase text-tealbrand-200">Indeks Prestasi Kumulatif (IPK)</span>
+            <div class="mt-2 flex items-baseline space-x-2">
+              <span id="overview-ipk" class="text-4xl sm:text-5xl font-extrabold">0.00</span>
+              <span class="text-sm text-tealbrand-200">/ 4.00</span>
+            </div>
+          </div>
+          <div class="mt-4 pt-4 border-t border-tealbrand-600/50 flex justify-between items-center text-xs text-tealbrand-100">
+            <span>Predikat Saat Ini:</span>
+            <span id="overview-predikat" class="font-bold bg-white/10 px-2 py-1 rounded-md">Belum Ada Data</span>
+          </div>
+        </div>
+
+        <!-- Card 2: SKS Stats -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+          <div>
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Total SKS Ditempuh</span>
+            <div class="mt-2 flex items-baseline space-x-2">
+              <span id="overview-sks" class="text-3xl font-bold text-slate-800">0</span>
+              <span class="text-sm text-slate-500">SKS</span>
+            </div>
+            <div class="w-full bg-slate-100 rounded-full h-2.5 mt-3 overflow-hidden">
+              <div id="sks-progress-bar" class="bg-tealbrand-600 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+          </div>
+          <p class="text-xs text-slate-500 mt-2">Target standar kelulusan S1: 144 SKS</p>
+        </div>
+
+        <!-- Card 3: Semester Count & Total Mutu -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+          <div>
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Statistik Ringkas</span>
+            <div class="mt-3 space-y-2">
+              <div class="flex justify-between text-sm">
+                <span class="text-slate-600">Jumlah Semester:</span>
+                <span id="overview-semesters-count" class="font-semibold text-slate-800">0 Semester</span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-slate-600">Total Mata Kuliah:</span>
+                <span id="overview-courses-count" class="font-semibold text-slate-800">0 Matkul</span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-slate-600">Total Bobot Nilai (Mutu):</span>
+                <span id="overview-mutu" class="font-semibold text-tealbrand-700">0.0</span>
+              </div>
+            </div>
+          </div>
+          <div class="pt-3">
+            <button onclick="openAddSemesterModal()" class="w-full bg-tealbrand-600 hover:bg-tealbrand-700 text-white text-xs font-medium py-2 px-3 rounded-lg transition flex items-center justify-center space-x-1">
+              <span>➕</span>
+              <span>Tambah Semester Baru</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action & Semesters Section -->
+      <div class="flex justify-between items-center pt-2">
+        <h2 class="text-lg font-bold text-slate-800 flex items-center space-x-2">
+          <span>📚</span>
+          <span>Daftar Nilai Per Semester</span>
+        </h2>
+        <button onclick="openAddSemesterModal()" class="bg-tealbrand-600 hover:bg-tealbrand-700 text-white text-sm font-semibold px-4 py-2 rounded-xl shadow-sm transition flex items-center space-x-2">
+          <span>+</span>
+          <span>Tambah Semester</span>
+        </button>
+      </div>
+
+      <!-- Semester Container (Dynamically Rendered) -->
+      <div id="semesters-container" class="space-y-6">
+        <!-- Rendered via JS -->
+      </div>
+
+    </section>
+
+
+    <!-- ========================================================================= -->
+    <!-- TAB 2: DEADLINE & TUGAS TRACKER -->
+    <!-- ========================================================================= -->
+    <section id="tugas-tab" class="tab-content hidden fade-in space-y-6">
+      
+      <!-- Top Action Bar for Tasks -->
+      <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h2 class="text-lg font-bold text-slate-800 flex items-center space-x-2">
+              <span>📝</span>
+              <span>Manajemen Tugas & Deadline</span>
+            </h2>
+            <p class="text-xs text-slate-500">Catat dan pantau tugas kuliah agar tidak terlewat deadline</p>
+          </div>
+          <button onclick="openAddTaskModal()" class="w-full sm:w-auto bg-tealbrand-600 hover:bg-tealbrand-700 text-white font-semibold text-sm px-4 py-2.5 rounded-xl shadow-sm transition flex items-center justify-center space-x-2">
+            <span>➕</span>
+            <span>Tambah Tugas Baru</span>
+          </button>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-100">
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">Filter Status</label>
+            <select id="task-filter-status" onchange="renderTasks()" class="w-full border border-slate-200 rounded-lg p-2 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-tealbrand-500 outline-none">
+              <option value="all">Semua Status</option>
+              <option value="pending" selected>Belum Selesai</option>
+              <option value="completed">Sudah Selesai</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">Filter Prioritas</label>
+            <select id="task-filter-priority" onchange="renderTasks()" class="w-full border border-slate-200 rounded-lg p-2 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-tealbrand-500 outline-none">
+              <option value="all">Semua Prioritas</option>
+              <option value="Tinggi">Tinggi</option>
+              <option value="Sedang">Sedang</option>
+              <option value="Rendah">Rendah</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-500 mb-1">Cari Tugas / Matkul</label>
+            <input type="text" id="task-search" oninput="renderTasks()" placeholder="Ketik kata kunci..." class="w-full border border-slate-200 rounded-lg p-2 text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-tealbrand-500 outline-none">
+          </div>
+        </div>
+      </div>
+
+      <!-- Task Stats Pills -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div class="bg-white border border-slate-200 rounded-xl p-4 text-center">
+          <span class="text-xs text-slate-500">Total Tugas</span>
+          <span id="stat-task-total" class="block text-2xl font-bold text-slate-800 mt-1">0</span>
+        </div>
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
+          <span class="text-xs text-amber-700 font-medium">Perlu Dikerjakan</span>
+          <span id="stat-task-pending" class="block text-2xl font-bold text-amber-800 mt-1">0</span>
+        </div>
+        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center">
+          <span class="text-xs text-emerald-700 font-medium">Selesai</span>
+          <span id="stat-task-completed" class="block text-2xl font-bold text-emerald-800 mt-1">0</span>
+        </div>
+        <div class="bg-rose-50 border border-rose-200 rounded-xl p-4 text-center">
+          <span class="text-xs text-rose-700 font-medium">Mendesak / Terlewat</span>
+          <span id="stat-task-urgent" class="block text-2xl font-bold text-rose-800 mt-1">0</span>
+        </div>
+      </div>
+
+      <!-- Task List Area -->
+      <div id="tasks-list-container" class="space-y-3">
+        <!-- Rendered via JS -->
+      </div>
+
+    </section>
+
+
+    <!-- ========================================================================= -->
+    <!-- TAB 3: SIMULASI TARGET IPK -->
+    <!-- ========================================================================= -->
+    <section id="target-tab" class="tab-content hidden fade-in space-y-6">
+      
+      <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
+        <div>
+          <h2 class="text-lg font-bold text-slate-800 flex items-center space-x-2">
+            <span>🎯</span>
+            <span>Kalkulator & Target IPK Kelulusan</span>
+          </h2>
+          <p class="text-xs text-slate-500 mt-1">Hitung berapa rerata IPS yang wajib kamu capai pada SKS tersisa untuk mencapai target kelulusanmu.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          <!-- Input Form for Target Calculation -->
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-4">
+            <h3 class="font-semibold text-slate-700 text-sm border-b border-slate-200 pb-2">Konfigurasi Target Kelulusan</h3>
+            
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">IPK Saat Ini (Auto dari Kalkulator)</label>
+              <input type="number" step="0.01" id="target-input-current-ipk" readonly class="w-full bg-slate-200 border border-slate-300 rounded-lg p-2.5 text-sm font-bold text-slate-700 cursor-not-allowed">
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">SKS yang Sudah Lulus (Auto dari Kalkulator)</label>
+              <input type="number" id="target-input-current-sks" readonly class="w-full bg-slate-200 border border-slate-300 rounded-lg p-2.5 text-sm font-bold text-slate-700 cursor-not-allowed">
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Target Total SKS Kelulusan (Standar S1: 144)</label>
+              <input type="number" id="target-input-total-sks" value="144" oninput="calculateTargetIPK()" class="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-tealbrand-500 outline-none">
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-600 mb-1">Target IPK Akhir yang Diinginkan</label>
+              <input type="number" step="0.01" min="0" max="4.00" id="target-input-desired-ipk" value="3.75" oninput="calculateTargetIPK()" class="w-full bg-white border border-slate-300 rounded-lg p-2.5 text-sm font-bold text-tealbrand-700 focus:ring-2 focus:ring-tealbrand-500 outline-none">
+            </div>
+          </div>
+
+          <!-- Target Output & Feasibility Card -->
+          <div class="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-xl p-6 flex flex-col justify-between space-y-4 shadow-md">
+            <div>
+              <span class="text-xs font-semibold uppercase tracking-wider text-tealbrand-400">Hasil Analisis Kemungkinan</span>
+              
+              <div class="mt-4 space-y-3">
+                <div class="flex justify-between items-center text-sm border-b border-slate-700 pb-2">
+                  <span class="text-slate-300">SKS Tersisa:</span>
+                  <span id="target-output-remaining-sks" class="font-bold text-white text-base">0 SKS</span>
+                </div>
+
+                <div class="flex justify-between items-center text-sm border-b border-slate-700 pb-2">
+                  <span class="text-slate-300">Syarat Rerata IPS Sisa:</span>
+                  <span id="target-output-required-ips" class="font-extrabold text-2xl text-amber-400">0.00</span>
+                </div>
+              </div>
+
+              <!-- Feasibility Status Box -->
+              <div id="target-feasibility-box" class="mt-6 p-4 rounded-xl bg-slate-800/80 border border-slate-700">
+                <div id="target-feasibility-title" class="font-bold text-sm text-tealbrand-300">Menghitung...</div>
+                <p id="target-feasibility-desc" class="text-xs text-slate-300 mt-1 leading-relaxed"></p>
+              </div>
+            </div>
+
+            <p class="text-xs text-slate-400 italic">💡 Tips: Pertahankan IPS di atas angka syarat di setiap semester mendatang untuk menjamin target IPK kelulusanmu.</p>
+          </div>
+
+        </div>
+      </div>
+
+    </section>
+
+
+    <!-- ========================================================================= -->
+    <!-- TAB 4: BANTUAN FORMULIR CHALLENGE -->
+    <!-- ========================================================================= -->
+    <section id="submission-tab" class="tab-content hidden fade-in space-y-6">
+      
+      <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="px-2.5 py-1 bg-tealbrand-100 text-tealbrand-800 text-xs font-bold rounded-full">Vibe Coding Challenge</span>
+            <h2 class="text-lg font-bold text-slate-800">Panduan Isian Form Submisi Challenge</h2>
+          </div>
+          <p class="text-xs text-slate-500 mt-1">Kamu dapat menyalin langsung teks isian yang telah dirancang siap pakai di bawah ini ke formulir submission project kamu.</p>
+        </div>
+
+        <div class="grid grid-cols-1 gap-4">
+          
+          <!-- Field 1: Nama Project -->
+          <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1">
+            <div class="flex justify-between items-center">
+              <span class="text-xs font-bold text-slate-700 uppercase">1. Nama Project</span>
+              <button onclick="copyText('copy-nama-project')" class="text-xs text-tealbrand-600 hover:text-tealbrand-800 font-semibold flex items-center space-x-1">
+                <span>📋</span><span>Salin</span>
+              </button>
+            </div>
+            <p id="copy-nama-project" class="text-sm font-semibold text-slate-800 bg-white p-2.5 rounded-lg border border-slate-200">CampusMate - IPK Calculator & Tugas Tracker</p>
+          </div>
+
+          <!-- Field 2: Masalah yang diselesaikan -->
+          <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1">
+            <div class="flex justify-between items-center">
+              <span class="text-xs font-bold text-slate-700 uppercase">2. Masalah yang diselesaikan dan cara aplikasi membantunya</span>
+              <button onclick="copyText('copy-masalah')" class="text-xs text-tealbrand-600 hover:text-tealbrand-800 font-semibold flex items-center space-x-1">
+                <span>📋</span><span>Salin</span>
+              </button>
+            </div>
+            <p id="copy-masalah" class="text-xs leading-relaxed text-slate-700 bg-white p-3 rounded-lg border border-slate-200">
+Mahasiswa sering kesulitan memantau Indeks Prestasi Kumulatif (IPK) secara akurat, menghitung target nilai lulusan (Cum Laude), serta mengelola tenggat waktu tugas kuliah yang berantakan. CampusMate menyelesaikan masalah ini dengan menyediakan web app terpadu: Kalkulator IPK/IPS otomatis per semester, Simulasi Target IPS untuk sisa SKS kelulusan, dan Tracker Tugas & Deadline interaktif yang dilengkapi countdown waktu serta prioritas.
+            </p>
+          </div>
+
+          <!-- Field 3: AI Tools -->
+          <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1">
+            <div class="flex justify-between items-center">
+              <span class="text-xs font-bold text-slate-700 uppercase">3. AI tool atau coding agent yang digunakan</span>
+              <button onclick="copyText('copy-ai-tools')" class="text-xs text-tealbrand-600 hover:text-tealbrand-800 font-semibold flex items-center space-x-1">
+                <span>📋</span><span>Salin</span>
+              </button>
+            </div>
+            <p id="copy-ai-tools" class="text-xs leading-relaxed text-slate-700 bg-white p-3 rounded-lg border border-slate-200">
+Gemini 3 Flash — Digunakan untuk merancang arsitektur single-page application (SPA), pembuatan antarmuka UI modern berbasis Tailwind CSS, implementasi kalkulasi matematika IPK/IPS/Target SKS, serta manajemen penyimpanan lokal (Local Storage) dan komponen modal interaktif.
+            </p>
+          </div>
+
+        </div>
+
+        <div class="bg-tealbrand-50 border border-tealbrand-200 rounded-xl p-4 text-xs text-tealbrand-800 space-y-2">
+          <p class="font-bold">💡 Tips Pengumpulan:</p>
+          <ul class="list-disc list-inside space-y-1 text-slate-700">
+            <li>Simpan file website ini dengan nama <code class="bg-white px-1 py-0.5 rounded border border-tealbrand-300">index.html</code> di repository GitHub Anda.</li>
+            <li>Anda bisa mengunggahnya langsung ke GitHub Pages atau Vercel/Netlify untuk mendapatkan **Link Demo Project**.</li>
+          </ul>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: TAMBAH / EDIT SEMESTER -->
+  <!-- ========================================================================= -->
+  <div id="modal-semester" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4 fade-in">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <h3 id="modal-semester-title" class="font-bold text-slate-800">Tambah Semester Baru</h3>
+        <button onclick="closeModal('modal-semester')" class="text-slate-400 hover:text-slate-600 text-lg font-bold">✕</button>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Nama / Label Semester</label>
+        <input type="text" id="input-semester-name" placeholder="Misal: Semester 1, Semester 2" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-tealbrand-500 outline-none">
+      </div>
+      <div class="flex justify-end space-x-2 pt-2">
+        <button onclick="closeModal('modal-semester')" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Batal</button>
+        <button onclick="saveSemester()" class="px-4 py-2 text-xs font-semibold bg-tealbrand-600 hover:bg-tealbrand-700 text-white rounded-lg">Simpan Semester</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: TAMBAH / EDIT MATA KULIAH -->
+  <!-- ========================================================================= -->
+  <div id="modal-course" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4 fade-in">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <h3 id="modal-course-title" class="font-bold text-slate-800">Tambah Mata Kuliah</h3>
+        <button onclick="closeModal('modal-course')" class="text-slate-400 hover:text-slate-600 text-lg font-bold">✕</button>
+      </div>
+      
+      <input type="hidden" id="input-course-sem-id">
+      <input type="hidden" id="input-course-id">
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Mata Kuliah</label>
+        <input type="text" id="input-course-name" placeholder="Misal: Kalkulus I, Pemrograman Web" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-tealbrand-500 outline-none">
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Bobot SKS</label>
+          <input type="number" id="input-course-sks" min="1" max="10" value="3" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-tealbrand-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Nilai Huruf</label>
+          <select id="input-course-grade" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-tealbrand-500 outline-none">
+            <option value="A">A (4.00)</option>
+            <option value="A-">A- (3.70)</option>
+            <option value="B+">B+ (3.30 / 3.50)</option>
+            <option value="B">B (3.00)</option>
+            <option value="B-">B- (2.70)</option>
+            <option value="C+">C+ (2.30 / 2.50)</option>
+            <option value="C">C (2.00)</option>
+            <option value="D">D (1.00)</option>
+            <option value="E">E (0.00)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="flex justify-end space-x-2 pt-2">
+        <button onclick="closeModal('modal-course')" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Batal</button>
+        <button onclick="saveCourse()" class="px-4 py-2 text-xs font-semibold bg-tealbrand-600 hover:bg-tealbrand-700 text-white rounded-lg">Simpan Matkul</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: TAMBAH TUGAS -->
+  <!-- ========================================================================= -->
+  <div id="modal-task" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4 fade-in">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <h3 id="modal-task-title" class="font-bold text-slate-800">Tambah Tugas Baru</h3>
+        <button onclick="closeModal('modal-task')" class="text-slate-400 hover:text-slate-600 text-lg font-bold">✕</button>
+      </div>
+
+      <input type="hidden" id="input-task-id">
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Judul / Deskripsi Tugas</label>
+        <input type="text" id="input-task-title" placeholder="Misal: Laporan Praktikum Jaringan" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-tealbrand-500 outline-none">
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Mata Kuliah</label>
+        <input type="text" id="input-task-subject" placeholder="Misal: Jaringan Komputer" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-tealbrand-500 outline-none">
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Tanggal & Waktu Deadline</label>
+          <input type="datetime-local" id="input-task-deadline" class="w-full border border-slate-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-tealbrand-500 outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Prioritas</label>
+          <select id="input-task-priority" class="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-tealbrand-500 outline-none">
+            <option value="Tinggi">🔴 Tinggi</option>
+            <option value="Sedang" selected>🟡 Sedang</option>
+            <option value="Rendah">🟢 Rendah</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Catatan Tambahan (Opsional)</label>
+        <textarea id="input-task-notes" rows="2" placeholder="Catatan format penyerahan, link, dll..." class="w-full border border-slate-300 rounded-lg p-2 text-xs focus:ring-2 focus:ring-tealbrand-500 outline-none"></textarea>
+      </div>
+
+      <div class="flex justify-end space-x-2 pt-2">
+        <button onclick="closeModal('modal-task')" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Batal</button>
+        <button onclick="saveTask()" class="px-4 py-2 text-xs font-semibold bg-tealbrand-600 hover:bg-tealbrand-700 text-white rounded-lg">Simpan Tugas</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Toast Notification Box -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 bg-slate-800 text-white px-4 py-3 rounded-xl shadow-lg text-sm flex items-center space-x-2 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+    <span id="toast-icon">✅</span>
+    <span id="toast-message">Pesan notifikasi</span>
+  </div>
+
+
+  <!-- ========================================================================= -->
+  <!-- JAVASCRIPT APP LOGIC -->
+  <!-- ========================================================================= -->
+  <script>
+    // Standard Grade Point Conversion Mapping (Indonesian Higher Education Standard)
+    const GRADE_POINTS = {
+      'A': 4.00,
+      'A-': 3.70,
+      'B+': 3.50,
+      'B': 3.00,
+      'B-': 2.70,
+      'C+': 2.50,
+      'C': 2.00,
+      'D': 1.00,
+      'E': 0.00
+    };
+
+    // Main Reactive Application State
+    let appState = {
+      semesters: [],
+      tasks: [],
+      targetConfig: {
+        totalDegreeSks: 144,
+        targetIpk: 3.75
+      }
+    };
+
+    // Load State on Page Load
+    window.addEventListener('DOMContentLoaded', () => {
+      loadStateFromLocalStorage();
+      renderAll();
+    });
+
+    function saveStateToLocalStorage() {
+      localStorage.setItem('campusmate_app_state', JSON.stringify(appState));
+    }
+
+    function loadStateFromLocalStorage() {
+      const saved = localStorage.getItem('campusmate_app_state');
+      if (saved) {
+        try {
+          appState = JSON.parse(saved);
+        } catch (e) {
+          console.error("Gagal membaca LocalStorage:", e);
+        }
+      } else {
+        // Default initial empty state with sample prompt
+        appState = {
+          semesters: [],
+          tasks: [],
+          targetConfig: { totalDegreeSks: 144, targetIpk: 3.75 }
+        };
+      }
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(el => {
+        el.classList.remove('tab-active');
+        el.classList.add('text-slate-500');
+      });
+
+      document.getElementById(tabId).classList.remove('hidden');
+      const activeBtn = document.getElementById('tab-' + tabId);
+      activeBtn.classList.add('tab-active');
+      activeBtn.classList.remove('text-slate-500');
+
+      if (tabId === 'target-tab') {
+        calculateTargetIPK();
+      }
+    }
+
+    function loadSampleData() {
+      appState = {
+        semesters: [
+          {
+            id: 'sem-1',
+            name: 'Semester 1',
+            courses: [
+              { id: 'c1', name: 'Algoritma & Pemrograman', sks: 4, grade: 'A' },
+              { id: 'c2', name: 'Kalkulus I', sks: 3, grade: 'B+' },
+              { id: 'c3', name: 'Bahasa Indonesia', sks: 2, grade: 'A' },
+              { id: 'c4', name: 'Pengantar Teknologi Informasi', sks: 3, grade: 'A-' }
+            ]
+          },
+          {
+            id: 'sem-2',
+            name: 'Semester 2',
+            courses: [
+              { id: 'c5', name: 'Struktur Data & Algoritma', sks: 4, grade: 'A' },
+              { id: 'c6', name: 'Basis Data I', sks: 3, grade: 'A' },
+              { id: 'c7', name: 'Matematika Diskrit', sks: 3, grade: 'B+' },
+              { id: 'c8', name: 'Bahasa Inggris Akademik', sks: 2, grade: 'A-' }
+            ]
+          },
+          {
+            id: 'sem-3',
+            name: 'Semester 3',
+            courses: [
+              { id: 'c9', name: 'Pemrograman Web', sks: 4, grade: 'A' },
+              { id: 'c10', name: 'Sistem Operasi', sks: 3, grade: 'B' },
+              { id: 'c11', name: 'Jaringan Komputer', sks: 3, grade: 'B+' }
+            ]
+          }
+        ],
+        tasks: [
+          {
+            id: 't1',
+            title: 'Laporan Praktikum Pemrograman Web (Vibe Coding)',
+            subject: 'Pemrograman Web',
+            deadline: getTomorrowDateTime(),
+            priority: 'Tinggi',
+            completed: false,
+            notes: 'Gunakan Tailwind CSS dan Vanilla JS murni untuk challenge.'
+          },
+          {
+            id: 't2',
+            title: 'Tugas ERD & Normalisasi Database',
+            subject: 'Basis Data I',
+            deadline: getFutureDateTime(3),
+            priority: 'Sedang',
+            completed: false,
+            notes: 'Kumpul dalam bentuk PDF di LMS kampus.'
+          },
+          {
+            id: 't3',
+            title: 'Kuis Singkat Jaringan Komputer',
+            subject: 'Jaringan Komputer',
+            deadline: getFutureDateTime(5),
+            priority: 'Rendah',
+            completed: true,
+            notes: 'Materi bab 1-3 Subnetting.'
+          }
+        ],
+        targetConfig: {
+          totalDegreeSks: 144,
+          targetIpk: 3.75
+        }
+      };
+
+      saveStateToLocalStorage();
+      renderAll();
+      showToast('✨ Data contoh berhasil dimuat!');
+    }
+
+    function getTomorrowDateTime() {
+      const d = new Date();
+      d.setDate(d.getDate() + 1);
+      d.setHours(23, 59, 0, 0);
+      return d.toISOString().slice(0, 16);
+    }
+
+    function getFutureDateTime(days) {
+      const d = new Date();
+      d.setDate(d.getDate() + days);
+      d.setHours(17, 0, 0, 0);
+      return d.toISOString().slice(0, 16);
+    }
+
+    function renderAll() {
+      renderSemesters();
+      renderTasks();
+      calculateGlobalIPK();
+    }
+
+    function calculateGlobalIPK() {
+      let totalSKS = 0;
+      let totalMutu = 0;
+      let totalCourses = 0;
+
+      appState.semesters.forEach(sem => {
+        sem.courses.forEach(c => {
+          const sks = parseFloat(c.sks) || 0;
+          const point = GRADE_POINTS[c.grade] ?? 0;
+          totalSKS += sks;
+          totalMutu += (sks * point);
+          totalCourses++;
+        });
+      });
+
+      const ipk = totalSKS > 0 ? (totalMutu / totalSKS) : 0.00;
+
+      // Update UI elements
+      document.getElementById('overview-ipk').innerText = ipk.toFixed(2);
+      document.getElementById('quick-ipk').innerText = ipk.toFixed(2);
+
+      document.getElementById('overview-sks').innerText = totalSKS;
+      document.getElementById('quick-sks').innerText = totalSKS + ' SKS';
+
+      document.getElementById('overview-semesters-count').innerText = appState.semesters.length + ' Semester';
+      document.getElementById('overview-courses-count').innerText = totalCourses + ' Matkul';
+      document.getElementById('overview-mutu').innerText = totalMutu.toFixed(1);
+
+      // Predikat Calculation
+      let predikat = "Belum Ada Data";
+      if (totalSKS > 0) {
+        if (ipk >= 3.51) predikat = "Dengan Pujian (Cum Laude) 🌟";
+        else if (ipk >= 3.00) predikat = "Sangat Memuaskan 👍";
+        else if (ipk >= 2.75) predikat = "Memuaskan 👌";
+        else predikat = "Cukup";
+      }
+      document.getElementById('overview-predikat').innerText = predikat;
+
+      // Progress bar percentage based on target degree SKS (default 144)
+      const targetSks = appState.targetConfig.totalDegreeSks || 144;
+      const progressPercent = Math.min(100, Math.round((totalSKS / targetSks) * 100));
+      document.getElementById('sks-progress-bar').style.width = progressPercent + '%';
+
+      // Update Target Inputs
+      document.getElementById('target-input-current-ipk').value = ipk.toFixed(2);
+      document.getElementById('target-input-current-sks').value = totalSKS;
+
+      return { ipk, totalSKS, totalMutu };
+    }
+
+    function renderSemesters() {
+      const container = document.getElementById('semesters-container');
+      
+      if (appState.semesters.length === 0) {
+        container.innerHTML = `
+          <div class="bg-white border border-dashed border-slate-300 rounded-2xl p-8 text-center space-y-3">
+            <span class="text-3xl">📥</span>
+            <h3 class="font-bold text-slate-700 text-base">Belum Ada Data Semester</h3>
+            <p class="text-xs text-slate-500 max-w-sm mx-auto">Klik tombol "Tambah Semester" di atas atau muat data contoh untuk mulai menghitung IPS dan IPK.</p>
+            <button onclick="openAddSemesterModal()" class="bg-tealbrand-600 hover:bg-tealbrand-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition">
+              + Tambah Semester Pertama
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = '';
+
+      appState.semesters.forEach((sem, sIndex) => {
+        // Calculate IPS per semester
+        let semSKS = 0;
+        let semMutu = 0;
+        sem.courses.forEach(c => {
+          const sks = parseFloat(c.sks) || 0;
+          const point = GRADE_POINTS[c.grade] ?? 0;
+          semSKS += sks;
+          semMutu += (sks * point);
+        });
+
+        const ips = semSKS > 0 ? (semMutu / semSKS) : 0.00;
+
+        const semCard = document.createElement('div');
+        semCard.className = 'bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4 fade-in';
+
+        let coursesTableHTML = '';
+        if (sem.courses.length === 0) {
+          coursesTableHTML = `
+            <div class="text-center py-6 text-xs text-slate-400 border border-dashed border-slate-200 rounded-xl">
+              Belum ada mata kuliah di semester ini. Klik "+ Tambah Mata Kuliah" di bawah.
+            </div>
+          `;
+        } else {
+          coursesTableHTML = `
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr class="border-b border-slate-200 text-slate-500 font-semibold bg-slate-50/50">
+                    <th class="py-2.5 px-3">Mata Kuliah</th>
+                    <th class="py-2.5 px-3 text-center">SKS</th>
+                    <th class="py-2.5 px-3 text-center">Nilai Huruf</th>
+                    <th class="py-2.5 px-3 text-center">Bobot (Point)</th>
+                    <th class="py-2.5 px-3 text-center">Total Mutu</th>
+                    <th class="py-2.5 px-3 text-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  ${sem.courses.map((c, cIndex) => {
+                    const point = GRADE_POINTS[c.grade] ?? 0;
+                    const mutu = c.sks * point;
+                    return `
+                      <tr class="hover:bg-slate-50/80 transition">
+                        <td class="py-2.5 px-3 font-semibold text-slate-800">${escapeHtml(c.name)}</td>
+                        <td class="py-2.5 px-3 text-center font-medium text-slate-700">${c.sks}</td>
+                        <td class="py-2.5 px-3 text-center">
+                          <span class="px-2 py-0.5 rounded font-bold text-xs ${getGradeBadgeClass(c.grade)}">${c.grade}</span>
+                        </td>
+                        <td class="py-2.5 px-3 text-center text-slate-600">${point.toFixed(2)}</td>
+                        <td class="py-2.5 px-3 text-center font-bold text-tealbrand-700">${mutu.toFixed(1)}</td>
+                        <td class="py-2.5 px-3 text-right space-x-1">
+                          <button onclick="openEditCourseModal('${sem.id}', '${c.id}')" class="text-slate-500 hover:text-tealbrand-600 p-1">✏️</button>
+                          <button onclick="deleteCourse('${sem.id}', '${c.id}')" class="text-slate-500 hover:text-rose-600 p-1">🗑️</button>
+                        </td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          `;
+        }
+
+        semCard.innerHTML = `
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-100 pb-3 gap-2">
+            <div class="flex items-center space-x-3">
+              <span class="text-xl">📖</span>
+              <div>
+                <h3 class="font-bold text-slate-800 text-base">${escapeHtml(sem.name)}</h3>
+                <span class="text-xs text-slate-500">${sem.courses.length} Mata Kuliah | ${semSKS} SKS</span>
+              </div>
+            </div>
+
+            <div class="flex items-center space-x-3 w-full sm:w-auto justify-between sm:justify-end">
+              <div class="text-right bg-tealbrand-50 px-3 py-1.5 rounded-xl border border-tealbrand-200">
+                <span class="text-[10px] uppercase font-bold text-tealbrand-700 block">IPS Semester</span>
+                <span class="text-lg font-extrabold text-tealbrand-800">${ips.toFixed(2)}</span>
+              </div>
+              <button onclick="deleteSemester('${sem.id}')" class="text-xs text-rose-500 hover:text-rose-700 p-2 font-medium" title="Hapus Semester">
+                🗑️
+              </button>
+            </div>
+          </div>
+
+          ${coursesTableHTML}
+
+          <div class="pt-2 flex justify-start">
+            <button onclick="openAddCourseModal('${sem.id}')" class="text-xs font-semibold text-tealbrand-700 hover:text-tealbrand-800 bg-tealbrand-50 hover:bg-tealbrand-100 px-3 py-2 rounded-lg border border-tealbrand-200 transition flex items-center space-x-1">
+              <span>➕</span>
+              <span>Tambah Mata Kuliah</span>
+            </button>
+          </div>
+        `;
+
+        container.appendChild(semCard);
+      });
+    }
+
+    function getGradeBadgeClass(grade) {
+      if (['A', 'A-'].includes(grade)) return 'bg-emerald-100 text-emerald-800';
+      if (['B+', 'B', 'B-'].includes(grade)) return 'bg-blue-100 text-blue-800';
+      if (['C+', 'C'].includes(grade)) return 'bg-amber-100 text-amber-800';
+      return 'bg-rose-100 text-rose-800';
+    }
+
+    function openAddSemesterModal() {
+      document.getElementById('input-semester-name').value = 'Semester ' + (appState.semesters.length + 1);
+      document.getElementById('modal-semester').classList.remove('hidden');
+    }
+
+    function saveSemester() {
+      const name = document.getElementById('input-semester-name').value.trim();
+      if (!name) return showToast('⚠️ Nama semester wajib diisi', 'warning');
+
+      const newSem = {
+        id: 'sem-' + Date.now(),
+        name: name,
+        courses: []
+      };
+
+      appState.semesters.push(newSem);
+      saveStateToLocalStorage();
+      closeModal('modal-semester');
+      renderAll();
+      showToast('✅ Semester baru ditambahkan!');
+    }
+
+    function deleteSemester(semId) {
+      if (confirm('Apakah Anda yakin ingin menghapus semester ini beserta semua nilai mata kuliah di dalamnya?')) {
+        appState.semesters = appState.semesters.filter(s => s.id !== semId);
+        saveStateToLocalStorage();
+        renderAll();
+        showToast('🗑️ Semester telah dihapus');
+      }
+    }
+
+    function openAddCourseModal(semId) {
+      document.getElementById('modal-course-title').innerText = 'Tambah Mata Kuliah';
+      document.getElementById('input-course-sem-id').value = semId;
+      document.getElementById('input-course-id').value = '';
+      document.getElementById('input-course-name').value = '';
+      document.getElementById('input-course-sks').value = '3';
+      document.getElementById('input-course-grade').value = 'A';
+      document.getElementById('modal-course').classList.remove('hidden');
+    }
+
+    function openEditCourseModal(semId, courseId) {
+      const sem = appState.semesters.find(s => s.id === semId);
+      if (!sem) return;
+      const course = sem.courses.find(c => c.id === courseId);
+      if (!course) return;
+
+      document.getElementById('modal-course-title').innerText = 'Edit Mata Kuliah';
+      document.getElementById('input-course-sem-id').value = semId;
+      document.getElementById('input-course-id').value = courseId;
+      document.getElementById('input-course-name').value = course.name;
+      document.getElementById('input-course-sks').value = course.sks;
+      document.getElementById('input-course-grade').value = course.grade;
+      document.getElementById('modal-course').classList.remove('hidden');
+    }
+
+    function saveCourse() {
+      const semId = document.getElementById('input-course-sem-id').value;
+      const courseId = document.getElementById('input-course-id').value;
+      const name = document.getElementById('input-course-name').value.trim();
+      const sks = parseFloat(document.getElementById('input-course-sks').value) || 0;
+      const grade = document.getElementById('input-course-grade').value;
+
+      if (!name) return showToast('⚠️ Nama mata kuliah wajib diisi', 'warning');
+      if (sks <= 0) return showToast('⚠️ SKS minimal 1', 'warning');
+
+      const sem = appState.semesters.find(s => s.id === semId);
+      if (!sem) return;
+
+      if (courseId) {
+        // Edit existing
+        const course = sem.courses.find(c => c.id === courseId);
+        if (course) {
+          course.name = name;
+          course.sks = sks;
+          course.grade = grade;
+        }
+      } else {
+        // Add new
+        sem.courses.push({
+          id: 'c-' + Date.now(),
+          name,
+          sks,
+          grade
+        });
+      }
+
+      saveStateToLocalStorage();
+      closeModal('modal-course');
+      renderAll();
+      showToast('✅ Mata kuliah tersimpan!');
+    }
+
+    function deleteCourse(semId, courseId) {
+      const sem = appState.semesters.find(s => s.id === semId);
+      if (sem) {
+        sem.courses = sem.courses.filter(c => c.id !== courseId);
+        saveStateToLocalStorage();
+        renderAll();
+        showToast('🗑️ Mata kuliah dihapus');
+      }
+    }
+
+
+    function renderTasks() {
+      const container = document.getElementById('tasks-list-container');
+      const filterStatus = document.getElementById('task-filter-status').value;
+      const filterPriority = document.getElementById('task-filter-priority').value;
+      const searchQuery = document.getElementById('task-search').value.toLowerCase().trim();
+
+      let filtered = appState.tasks.slice();
+
+      // Stats calculation
+      const totalCount = appState.tasks.length;
+      const pendingCount = appState.tasks.filter(t => !t.completed).length;
+      const completedCount = appState.tasks.filter(t => t.completed).length;
+
+      const now = new Date();
+      const urgentCount = appState.tasks.filter(t => {
+        if (t.completed) return false;
+        if (!t.deadline) return false;
+        const diffHours = (new Date(t.deadline) - now) / (1000 * 60 * 60);
+        return diffHours <= 24; // overdue or within 24 hours
+      }).length;
+
+      document.getElementById('stat-task-total').innerText = totalCount;
+      document.getElementById('stat-task-pending').innerText = pendingCount;
+      document.getElementById('stat-task-completed').innerText = completedCount;
+      document.getElementById('stat-task-urgent').innerText = urgentCount;
+
+      document.getElementById('quick-tasks').innerText = pendingCount;
+
+      const badgePending = document.getElementById('badge-pending-count');
+      if (pendingCount > 0) {
+        badgePending.innerText = pendingCount;
+        badgePending.classList.remove('hidden');
+      } else {
+        badgePending.classList.add('hidden');
+      }
+
+      // Filter logic
+      if (filterStatus === 'pending') filtered = filtered.filter(t => !t.completed);
+      if (filterStatus === 'completed') filtered = filtered.filter(t => t.completed);
+
+      if (filterPriority !== 'all') filtered = filtered.filter(t => t.priority === filterPriority);
+
+      if (searchQuery) {
+        filtered = filtered.filter(t => 
+          t.title.toLowerCase().includes(searchQuery) || 
+          t.subject.toLowerCase().includes(searchQuery)
+        );
+      }
+
+      // Sort by deadline terdekat
+      filtered.sort((a, b) => new Date(a.deadline || '2099-12-31') - new Date(b.deadline || '2099-12-31'));
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="bg-white border border-dashed border-slate-300 rounded-2xl p-8 text-center space-y-2">
+            <span class="text-3xl">🎉</span>
+            <h3 class="font-bold text-slate-700 text-sm">Tidak Ada Tugas Ditemukan</h3>
+            <p class="text-xs text-slate-500">Semua tugas sudah selesai atau belum ada tugas yang dicatat.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = '';
+
+      filtered.forEach(task => {
+        const item = document.createElement('div');
+        item.className = `bg-white border rounded-2xl p-4 shadow-sm transition flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 ${
+          task.completed ? 'border-slate-200 bg-slate-50/60 opacity-75' : 'border-slate-200 hover:border-tealbrand-300'
+        }`;
+
+        const deadlineInfo = formatDeadline(task.deadline, task.completed);
+
+        item.innerHTML = `
+          <div class="flex items-start space-x-3 w-full sm:w-auto">
+            <input type="checkbox" ${task.completed ? 'checked' : ''} onchange="toggleTaskStatus('${task.id}')" class="mt-1 w-5 h-5 text-tealbrand-600 rounded focus:ring-tealbrand-500 cursor-pointer">
+            
+            <div class="space-y-1 flex-1">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="font-bold text-slate-800 text-sm ${task.completed ? 'line-through text-slate-400' : ''}">
+                  ${escapeHtml(task.title)}
+                </span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                  ${escapeHtml(task.subject || 'Umum')}
+                </span>
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${getPriorityBadgeClass(task.priority)}">
+                  Prioritas ${task.priority}
+                </span>
+              </div>
+
+              ${task.notes ? `<p class="text-xs text-slate-500 italic">${escapeHtml(task.notes)}</p>` : ''}
+
+              <div class="flex items-center space-x-2 text-xs pt-1">
+                <span>🗓️ ${deadlineInfo.formattedStr}</span>
+                <span class="px-2 py-0.5 rounded-md font-semibold text-[10px] ${deadlineInfo.badgeClass}">
+                  ${deadlineInfo.statusLabel}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center space-x-2 self-end sm:self-center">
+            <button onclick="openEditTaskModal('${task.id}')" class="text-slate-400 hover:text-tealbrand-600 p-1.5 rounded-lg hover:bg-slate-100 transition text-xs">
+              ✏️ Edit
+            </button>
+            <button onclick="deleteTask('${task.id}')" class="text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-slate-100 transition text-xs">
+              🗑️ Hapus
+            </button>
+          </div>
+        `;
+
+        container.appendChild(item);
+      });
+    }
+
+    function formatDeadline(dateStr, isCompleted) {
+      if (!dateStr) return { formattedStr: 'Tanpa Deadline', statusLabel: 'Fleksibel', badgeClass: 'bg-slate-100 text-slate-600' };
+
+      const d = new Date(dateStr);
+      const now = new Date();
+      const diffMs = d - now;
+      const diffHours = diffMs / (1000 * 60 * 60);
+
+      const formattedStr = d.toLocaleDateString('id-ID', {
+        day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+      });
+
+      if (isCompleted) {
+        return { formattedStr, statusLabel: 'Selesai', badgeClass: 'bg-emerald-100 text-emerald-800' };
+      }
+
+      if (diffMs < 0) {
+        return { formattedStr, statusLabel: 'Terlewat!', badgeClass: 'bg-rose-100 text-rose-800 font-bold' };
+      } else if (diffHours <= 24) {
+        return { formattedStr, statusLabel: 'Hari ini / <24 Jam', badgeClass: 'bg-amber-100 text-amber-800 font-bold' };
+      } else if (diffHours <= 72) {
+        return { formattedStr, statusLabel: 'Mendesak (≤3 Hari)', badgeClass: 'bg-blue-100 text-blue-800' };
+      } else {
+        return { formattedStr, statusLabel: 'Aman', badgeClass: 'bg-slate-100 text-slate-600' };
+      }
+    }
+
+    function getPriorityBadgeClass(priority) {
+      if (priority === 'Tinggi') return 'bg-rose-100 text-rose-800';
+      if (priority === 'Sedang') return 'bg-amber-100 text-amber-800';
+      return 'bg-emerald-100 text-emerald-800';
+    }
+
+    function openAddTaskModal() {
+      document.getElementById('modal-task-title').innerText = 'Tambah Tugas Baru';
+      document.getElementById('input-task-id').value = '';
+      document.getElementById('input-task-title').value = '';
+      document.getElementById('input-task-subject').value = '';
+      document.getElementById('input-task-deadline').value = getTomorrowDateTime();
+      document.getElementById('input-task-priority').value = 'Sedang';
+      document.getElementById('input-task-notes').value = '';
+      document.getElementById('modal-task').classList.remove('hidden');
+    }
+
+    function openEditTaskModal(taskId) {
+      const task = appState.tasks.find(t => t.id === taskId);
+      if (!task) return;
+
+      document.getElementById('modal-task-title').innerText = 'Edit Tugas';
+      document.getElementById('input-task-id').value = task.id;
+      document.getElementById('input-task-title').value = task.title;
+      document.getElementById('input-task-subject').value = task.subject || '';
+      document.getElementById('input-task-deadline').value = task.deadline || '';
+      document.getElementById('input-task-priority').value = task.priority || 'Sedang';
+      document.getElementById('input-task-notes').value = task.notes || '';
+      document.getElementById('modal-task').classList.remove('hidden');
+    }
+
+    function saveTask() {
+      const taskId = document.getElementById('input-task-id').value;
+      const title = document.getElementById('input-task-title').value.trim();
+      const subject = document.getElementById('input-task-subject').value.trim();
+      const deadline = document.getElementById('input-task-deadline').value;
+      const priority = document.getElementById('input-task-priority').value;
+      const notes = document.getElementById('input-task-notes').value.trim();
+
+      if (!title) return showToast('⚠️ Judul tugas wajib diisi', 'warning');
+
+      if (taskId) {
+        const task = appState.tasks.find(t => t.id === taskId);
+        if (task) {
+          task.title = title;
+          task.subject = subject;
+          task.deadline = deadline;
+          task.priority = priority;
+          task.notes = notes;
+        }
+      } else {
+        appState.tasks.push({
+          id: 't-' + Date.now(),
+          title,
+          subject,
+          deadline,
+          priority,
+          notes,
+          completed: false
+        });
+      }
+
+      saveStateToLocalStorage();
+      closeModal('modal-task');
+      renderTasks();
+      showToast('✅ Tugas berhasil disimpan!');
+    }
+
+    function toggleTaskStatus(taskId) {
+      const task = appState.tasks.find(t => t.id === taskId);
+      if (task) {
+        task.completed = !task.completed;
+        saveStateToLocalStorage();
+        renderTasks();
+        showToast(task.completed ? '🎉 Tugas diselesaikan!' : 'ℹ️ Status diubah ke belum selesai');
+      }
+    }
+
+    function deleteTask(taskId) {
+      if (confirm('Hapus tugas ini?')) {
+        appState.tasks = appState.tasks.filter(t => t.id !== taskId);
+        saveStateToLocalStorage();
+        renderTasks();
+        showToast('🗑️ Tugas dihapus');
+      }
+    }
+
+
+    function calculateTargetIPK() {
+      const currentStats = calculateGlobalIPK();
+      const currentIPK = currentStats.ipk;
+      const currentSKS = currentStats.totalSKS;
+
+      const totalTargetSKS = parseFloat(document.getElementById('target-input-total-sks').value) || 144;
+      const desiredIPK = parseFloat(document.getElementById('target-input-desired-ipk').value) || 3.75;
+
+      appState.targetConfig.totalDegreeSks = totalTargetSKS;
+      appState.targetConfig.targetIpk = desiredIPK;
+      saveStateToLocalStorage();
+
+      const remainingSKS = totalTargetSKS - currentSKS;
+
+      document.getElementById('target-output-remaining-sks').innerText = Math.max(0, remainingSKS) + ' SKS';
+
+      const feasibilityBox = document.getElementById('target-feasibility-box');
+      const titleEl = document.getElementById('target-feasibility-title');
+      const descEl = document.getElementById('target-feasibility-desc');
+      const reqIpsEl = document.getElementById('target-output-required-ips');
+
+      if (remainingSKS <= 0) {
+        reqIpsEl.innerText = "0.00";
+        titleEl.innerText = "🎉 Total SKS Sudah Terpenuhi";
+        descEl.innerText = "Kamu telah menyelesaikan semua target SKS kelulusan.";
+        feasibilityBox.className = "mt-6 p-4 rounded-xl bg-emerald-900/60 border border-emerald-700";
+        return;
+      }
+
+      // Calculation formula:
+      // Required Remaining Mutu = (Desired IPK * Total Target SKS) - Current Total Mutu
+      // Required Remaining IPS = Required Remaining Mutu / Remaining SKS
+      const currentTotalMutu = currentStats.totalMutu;
+      const targetTotalMutu = desiredIPK * totalTargetSKS;
+      const requiredRemainingMutu = targetTotalMutu - currentTotalMutu;
+      const requiredIPS = requiredRemainingMutu / remainingSKS;
+
+      reqIpsEl.innerText = requiredIPS > 0 ? requiredIPS.toFixed(2) : "0.00";
+
+      if (requiredIPS <= 0) {
+        titleEl.innerText = "🌟 Target Sudah Terlampaui!";
+        descEl.innerText = `Dengan IPK saat ini (${currentIPK.toFixed(2)}), target IPK ${desiredIPK.toFixed(2)} sudah pasti tercapai meskipun nilai sisa SKS kamu standar.`;
+        feasibilityBox.className = "mt-6 p-4 rounded-xl bg-emerald-900/80 border border-emerald-700";
+      } else if (requiredIPS <= 3.00) {
+        titleEl.innerText = "🟢 Sangat Realistis & Dapat Dicapai";
+        descEl.innerText = `Kamu hanya perlu menjaga rerata IPS sebesar ${requiredIPS.toFixed(2)} di ${remainingSKS} SKS tersisa. Pertahankan performamu!`;
+        feasibilityBox.className = "mt-6 p-4 rounded-xl bg-emerald-900/60 border border-emerald-700";
+      } else if (requiredIPS <= 3.50) {
+        titleEl.innerText = "🔵 Target Wajar (Butuh Konsistensi)";
+        descEl.innerText = `Membutuhkan rerata IPS ${requiredIPS.toFixed(2)} untuk ${remainingSKS} SKS tersisa. Jaga motivasi belajar dan pengerjaan tugas!`;
+        feasibilityBox.className = "mt-6 p-4 rounded-xl bg-blue-900/60 border border-blue-700";
+      } else if (requiredIPS <= 4.00) {
+        titleEl.innerText = "🔥 Butuh Performa Maksimal";
+        descEl.innerText = `Membutuhkan rerata IPS tinggi (${requiredIPS.toFixed(2)}) di sisa ${remainingSKS} SKS. Fokus dapatkan nilai A/A- di semua mata kuliah mendatang!`;
+        feasibilityBox.className = "mt-6 p-4 rounded-xl bg-amber-900/60 border border-amber-700";
+      } else {
+        titleEl.innerText = "⚠️ Secara Matematis Melebihi Maksimum (4.00)";
+        descEl.innerText = `Untuk mencapai target IPK ${desiredIPK.toFixed(2)}, kamu butuh IPS ${requiredIPS.toFixed(2)} yang melebihi skala maksimum 4.00. Pertimbangkan untuk menyesuaikan target atau menambah semester perbaikan.`;
+        feasibilityBox.className = "mt-6 p-4 rounded-xl bg-rose-900/80 border border-rose-700";
+      }
+    }
+
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.add('hidden');
+    }
+
+    function showToast(message, type = 'info') {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toast-message');
+      toastMsg.innerText = message;
+
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3000);
+    }
+
+    function copyText(elementId) {
+      const text = document.getElementById(elementId).innerText;
+      
+      // Fallback robust copy implementation as per instructions
+      const tempTextArea = document.createElement('textarea');
+      tempTextArea.value = text;
+      document.body.appendChild(tempTextArea);
+      tempTextArea.select();
+      try {
+        document.execCommand('copy');
+        showToast('📋 Teks berhasil disalin!');
+      } catch (err) {
+        showToast('⚠️ Gagal menyalin secara otomatis');
+      }
+      document.body.removeChild(tempTextArea);
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+  </script>
+</body>
+</html>
